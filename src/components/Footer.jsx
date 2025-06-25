@@ -1,5 +1,5 @@
 import React from "react";
-import Logo from "../assets/graphics/mainlogo.png";
+import Logo from "../assets/graphics/mainlogo2.png";
 import { Link } from "react-router-dom";
 import { FaWhatsapp, FaSquareInstagram, FaFacebook } from "react-icons/fa6";
 import { IoIosArrowForward } from "react-icons/io";

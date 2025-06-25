@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MdMenu, MdClose } from "react-icons/md";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import Logo from "../assets/graphics/mainlogo.png";
+import Logo from "../assets/graphics/mainlogo2.png";
 import useAuth from "../hooks/useAuth";
 
 function NavBar() {
@@ -71,7 +71,7 @@ function NavBar() {
               <div className="relative group">
                 <img
                   src={Logo}
-                  className="h-[70px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="h-[80px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   alt="Logo"
                 />
               </div>

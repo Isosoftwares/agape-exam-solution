@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import Logo from "../../assets/graphics/4Copy.png";
+import Logo from "../../assets/graphics/mainLogo2.png";
 import { FaAngleRight } from "react-icons/fa6";
 import useAuth from "../../hooks/useAuth";
 import { Divider } from "@mantine/core";
@@ -73,8 +73,19 @@ function SideNav({ mobileMenu, handleMenu }) {
       <div
         className={`bg-[#e7e5f0]  hidden lg:inline-block  text-dark   z-50   w-80 min-h-screen overflow-y-auto   `}
       >
-        <Link to={"/"} className="">
-          <img src={Logo} className=" w-full   bg-primary px-4 " alt="Logo" />
+        <Link to={"/"}>
+          <div className="bg-primary w-full px-2 py-4">
+            <p>
+              <span className="text-2xl font-bold  text-secondary  ">
+                Agape{" "}
+              </span>
+              <span className="text-2xl font-bold  text-light  ">
+                Exam Solutions
+              </span>
+            </p>
+            <p className="text-3xl font-bold text-light">GED</p>
+            {/* <img src={Logo} className=" w-full h-[100px]  bg-primary px-4 " alt="Logo" /> */}
+          </div>
         </Link>
         <div className="px-4 h-[79vh] mt-2 overflow-y-auto no-scrollbar pb-5">
           <ul className="flex flex-col  gap-3  font-semibold text-opacity-100  ">
@@ -97,8 +108,9 @@ function SideNav({ mobileMenu, handleMenu }) {
                             to={item?.path}
                             key={index}
                             className={` ${
-                              decodeURIComponent(pathname)?.includes(item.path) &&
-                              "bg-[#cdc7ecea] rounded-md "
+                              decodeURIComponent(pathname)?.includes(
+                                item.path
+                              ) && "bg-[#cdc7ecea] rounded-md "
                             } flex gap-2 mt-1 text-primary items-center px-4 py-2 hover:bg-[#cdc7ecea] hover:rounded-md `}
                           >
                             {item?.icon}

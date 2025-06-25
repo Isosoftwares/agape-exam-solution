@@ -74,8 +74,19 @@ function SideNav({ mobileMenu, handleMenu }) {
       <div
         className={`bg-[#e7e5f0]  hidden lg:inline-block  text-dark   z-50   w-80 min-h-screen overflow-y-auto   `}
       >
-        <Link to={"/"} className="">
-          <img src={Logo} className=" w-full   bg-primary px-4 " alt="Logo" />
+        <Link to={"/"}>
+          <div className="bg-primary w-full px-2 py-4">
+            <p>
+              <span className="text-2xl font-bold  text-secondary  ">
+                Agape{" "}
+              </span>
+              <span className="text-2xl font-bold  text-light  ">
+                Exam Solutions
+              </span>
+            </p>
+            <p className="text-3xl font-bold text-light">HESI</p>
+            {/* <img src={Logo} className=" w-full h-[100px]  bg-primary px-4 " alt="Logo" /> */}
+          </div>
         </Link>
         <div className="px-4 h-[79vh] mt-2 overflow-y-auto no-scrollbar pb-5">
           <ul className="flex flex-col  gap-3  font-semibold text-opacity-100  ">
