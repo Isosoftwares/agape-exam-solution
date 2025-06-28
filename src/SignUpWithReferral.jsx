@@ -42,12 +42,29 @@ function SignUpWithReferral() {
   const [visiblePassword, setVisiblePassword] = useState(false);
   const navigate = useNavigate();
 
-  // Get referral code from URL params if present
+  // Load referral code from localStorage on component mount
+  useEffect(() => {
+    const savedReferralCode = localStorage.getItem('referralCode');
+    const savedMarketerName = localStorage.getItem('referralMarketerName');
+    
+    if (savedReferralCode && savedMarketerName) {
+      setReferralCode(savedReferralCode);
+      setMarketerName(savedMarketerName);
+      setReferralValid(true);
+      setValue('referralCode', savedReferralCode);
+    }
+  }, [setValue]);
+
+  // Get referral code from URL params if present (this takes priority over localStorage)
   useEffect(() => {
     const refCode = searchParams.get('ref');
     if (refCode) {
-      setReferralCode(refCode.toUpperCase());
-      setValue('referralCode', refCode.toUpperCase());
+      const upperRefCode = refCode.toUpperCase();
+      setReferralCode(upperRefCode);
+      setValue('referralCode', upperRefCode);
+      // Clear localStorage when new ref code comes from URL
+      localStorage.removeItem('referralCode');
+      localStorage.removeItem('referralMarketerName');
     }
   }, [searchParams, setValue]);
 
@@ -64,18 +81,27 @@ function SignUpWithReferral() {
     refetchOnWindowFocus: false,
   });
 
+  // Handle referral validation results and localStorage sync
   useEffect(() => {
     if (referralData?.success) {
       setReferralValid(true);
       setMarketerName(referralData.data.marketerName);
+      
+      // Save valid referral code and marketer name to localStorage
+      localStorage.setItem('referralCode', referralCode);
+      localStorage.setItem('referralMarketerName', referralData.data.marketerName);
     } else if (referralData?.success === false) {
       setReferralValid(false);
       setMarketerName("");
+      
+      // Clear localStorage for invalid referral codes
+      localStorage.removeItem('referralCode');
+      localStorage.removeItem('referralMarketerName');
     } else {
       setReferralValid(null);
       setMarketerName("");
     }
-  }, [referralData]);
+  }, [referralData, referralCode]);
 
   const signUp = (loginData) => {
     return axios.post("/client", loginData);
@@ -111,6 +137,10 @@ function SignUpWithReferral() {
       localStorage.setItem("userId", JSON.stringify(userId));
       localStorage.setItem("activeDashboard", "/client");
       
+      // Clear referral code from localStorage after successful signup
+      localStorage.removeItem('referralCode');
+      localStorage.removeItem('referralMarketerName');
+      
       let text = `Welcome ${userName || ""}`;
       if (referredBy) {
         text += ` (Referred by ${referredBy})`;
@@ -139,6 +169,7 @@ function SignUpWithReferral() {
     }
 
     data.phoneNo = phoneNo;
+    data.site = "Agape Exam"
     if (referralCode && referralValid) {
       data.referralCode = referralCode;
     }
@@ -150,6 +181,12 @@ function SignUpWithReferral() {
     const value = e.target.value.toUpperCase();
     setReferralCode(value);
     setValue('referralCode', value);
+    
+    // Clear localStorage when manually changing referral code
+    if (!value) {
+      localStorage.removeItem('referralCode');
+      localStorage.removeItem('referralMarketerName');
+    }
   };
 
   return (

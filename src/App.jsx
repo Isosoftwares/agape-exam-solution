@@ -137,7 +137,7 @@ function App() {
           <Route element={<PersistLogin />}>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
+            <Route path="/signup" element={<SignUpWithReferral />} />
             <Route path="/sign-up" element={<SignUpWithReferral />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/online-class-help" element={<OnlineClassHelp />} />

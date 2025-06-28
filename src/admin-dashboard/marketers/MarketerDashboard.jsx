@@ -12,8 +12,14 @@ import {
   DollarSign,
   Copy,
   ExternalLink,
+  CreditCard,
 } from "lucide-react";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
+import { useDisclosure } from "@mantine/hooks";
+import { Modal } from "@mantine/core";
+import EditMarketerModal from "./components/EditMarketerModal";
+import PayMarketerModal from "./components/PayMarketerModal";
+import ViewMarketerModal from "./components/ViewMarketerModal";
 
 const MarketerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,6 +29,20 @@ const MarketerDashboard = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const axios = useAxiosPrivate();
+  const [
+    openedEditMarketer,
+    { open: openEditMarketer, close: closeEditMarketer },
+  ] = useDisclosure(false);
+
+  const [
+    openedPayMarketer,
+    { open: openPayMarketer, close: closePayMarketer },
+  ] = useDisclosure(false);
+
+  const [
+    openedViewMarketer,
+    { open: openViewMarketer, close: closeViewMarketer },
+  ] = useDisclosure(false);
 
   const queryClient = useQueryClient();
 
@@ -103,6 +123,35 @@ const MarketerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* edit marketer */}
+      <Modal
+        opened={openedEditMarketer}
+        onClose={closeEditMarketer}
+        title="Edit Marketer"
+        size="lg"
+      >
+        <EditMarketerModal
+          onClose={closeEditMarketer}
+          marketer={selectedMarketer}
+        />
+      </Modal>
+
+      {/* pay marketer */}
+      <Modal opened={openedPayMarketer} onClose={closePayMarketer} size="lg">
+        <PayMarketerModal
+          onClose={closePayMarketer}
+          marketer={selectedMarketer}
+        />
+      </Modal>
+
+      {/* view marketer */}
+      <Modal opened={openedViewMarketer} onClose={closeViewMarketer} size="xl">
+        <ViewMarketerModal
+          onClose={closeViewMarketer}
+          marketer={selectedMarketer}
+        />
+      </Modal>
+
       <div className="">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -308,7 +357,7 @@ const MarketerDashboard = () => {
                         {marketer.totalReferrals || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(marketer.totalEarnings || 0).toFixed(2)}
+                        ${(marketer.balance || 0).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -328,12 +377,34 @@ const MarketerDashboard = () => {
                           <button
                             onClick={() => {
                               setSelectedMarketer(marketer);
-                              setShowViewModal(true);
+                              // setShowViewModal(true);
+                              openViewMarketer();
                             }}
                             className="text-blue-600 hover:text-blue-900"
                             title="View details"
                           >
                             <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedMarketer(marketer);
+                              openEditMarketer();
+                            }}
+                            className="text-yellow-600 hover:text-yellow-900"
+                            title="Edit marketer"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedMarketer(marketer);
+                              openPayMarketer();
+                            }}
+                            className="text-green-600 hover:text-green-900"
+                            title="Pay marketer"
+                            disabled={marketer.balance <= 0}
+                          >
+                            <CreditCard size={16} />
                           </button>
                           <button
                             onClick={() => handleStatusToggle(marketer)}
@@ -433,12 +504,7 @@ const MarketerDashboard = () => {
         isLoading={createMarketerMutation.isPending}
       />
 
-      {/* View Marketer Modal */}
-      <ViewMarketerModal
-        isOpen={showViewModal}
-        onClose={() => setShowViewModal(false)}
-        marketer={selectedMarketer}
-      />
+     
     </div>
   );
 };
@@ -571,173 +637,5 @@ const AddMarketerModal = ({ isOpen, onClose, onSubmit, isLoading }) => {
   );
 };
 
-// View Marketer Modal Component
-const ViewMarketerModal = ({ isOpen, onClose, marketer }) => {
-  if (!isOpen || !marketer) return null;
-
-  const referralLink = `${window.location.origin}/sign-up?ref=${marketer.referralCode}`;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-bold">Marketer Details</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                First Name
-              </label>
-              <p className="mt-1 text-sm text-gray-900">{marketer.firstName}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Last Name
-              </label>
-              <p className="mt-1 text-sm text-gray-900">{marketer.lastName}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <p className="mt-1 text-sm text-gray-900">{marketer.email}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <p className="mt-1 text-sm text-gray-900">{marketer.phoneNo}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Referral Code
-            </label>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                {marketer.referralCode}
-              </span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(marketer.referralCode);
-                  toast.success("Referral code copied!");
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <Copy size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Referral Link
-            </label>
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="text"
-                value={referralLink}
-                readOnly
-                className="flex-1 text-xs bg-gray-50 px-2 py-1 rounded border"
-              />
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(referralLink);
-                  toast.success("Referral link copied!");
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <Copy size={16} />
-              </button>
-              <a
-                href={referralLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <ExternalLink size={16} />
-              </a>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Commission Rate
-              </label>
-              <p className="mt-1 text-sm text-gray-900">
-                {marketer.commissionRate}%
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Status
-              </label>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  marketer.status === "Active"
-                    ? "bg-green-100 text-green-800"
-                    : marketer.status === "Suspended"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {marketer.status}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Total Referrals
-              </label>
-              <p className="mt-1 text-sm text-gray-900">
-                {marketer.totalReferrals || 0}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Total Earnings
-              </label>
-              <p className="mt-1 text-sm text-gray-900">
-                ${(marketer.totalEarnings || 0).toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Created At
-            </label>
-            <p className="mt-1 text-sm text-gray-900">
-              {new Date(marketer.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default MarketerDashboard;

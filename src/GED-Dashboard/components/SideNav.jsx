@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import Logo from "../../assets/graphics/mainLogo2.png";
 import { FaAngleRight } from "react-icons/fa6";
 import useAuth from "../../hooks/useAuth";
 import { Divider } from "@mantine/core";

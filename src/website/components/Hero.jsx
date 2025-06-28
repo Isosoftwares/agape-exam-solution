@@ -1,5 +1,5 @@
 import React from "react";
-import hero from "../../assets/graphics/newhero.jpg";
+import hero from "../../assets/graphics/newhero.png";
 import { FaWhatsapp, FaArrowRight, FaStar } from "react-icons/fa6";
 import { FaCircleCheck } from "react-icons/fa6";
 import whatsappNumber from "../../utils/whatsappNumber";

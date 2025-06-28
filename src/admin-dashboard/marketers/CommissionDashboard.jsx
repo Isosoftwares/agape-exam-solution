@@ -198,18 +198,7 @@ const CommissionDashboard = () => {
                 Manage referral commissions and payouts
               </p>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleBulkAction("Paid")}
-                disabled={
-                  selectedReferrals.length === 0 || bulkUpdateMutation.isPending
-                }
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <Check size={20} />
-                Mark as Paid ({selectedReferrals.length})
-              </button>
-            </div>
+            
           </div>
 
           {/* Filters */}
@@ -270,7 +259,7 @@ const CommissionDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="bg-white hidden p-6 rounded-lg shadow-sm">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <Clock className="text-yellow-600" size={24} />
@@ -284,7 +273,7 @@ const CommissionDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="bg-white hidden p-6 rounded-lg shadow-sm">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Check className="text-green-600" size={24} />
@@ -300,13 +289,12 @@ const CommissionDashboard = () => {
 
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <X className="text-red-600" size={24} />
+              <div className="p-4 bg-green-100 rounded-lg">
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Cancelled</p>
+                <p className="text-sm font-medium text-gray-600">Total</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(summary.cancelledCommission || 0)}
+                  { referralsData?.data?.pagination?.count || 0}
                 </p>
               </div>
             </div>
@@ -320,19 +308,7 @@ const CommissionDashboard = () => {
               <h3 className="text-lg font-semibold text-gray-900">
                 Referral Commissions
               </h3>
-              <div className="flex gap-2">
-                {selectedReferrals.length > 0 && (
-                  <>
-                    <button
-                      onClick={() => handleBulkAction("Cancelled")}
-                      disabled={bulkUpdateMutation.isPending}
-                      className="text-red-600 hover:text-red-800 px-3 py-1 border border-red-300 rounded-md text-sm"
-                    >
-                      Cancel Selected
-                    </button>
-                  </>
-                )}
-              </div>
+            
             </div>
           </div>
 
@@ -363,9 +339,7 @@ const CommissionDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Client Value
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
+                
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
@@ -438,11 +412,7 @@ const CommissionDashboard = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(referral.clientValue || 0)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={getStatusBadge(referral.status)}>
-                          {referral.status}
-                        </span>
-                      </td>
+                   
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(referral.createdAt).toLocaleDateString()}
                       </td>
@@ -458,28 +428,7 @@ const CommissionDashboard = () => {
                           >
                             <Eye size={16} />
                           </button>
-                          {referral.status === "Pending" && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  handleStatusChange(referral, "Paid")
-                                }
-                                className="text-green-600 hover:text-green-900"
-                                title="Mark as paid"
-                              >
-                                <Check size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleStatusChange(referral, "Cancelled")
-                                }
-                                className="text-red-600 hover:text-red-900"
-                                title="Cancel"
-                              >
-                                <X size={16} />
-                              </button>
-                            </>
-                          )}
+                          
                         </div>
                       </td>
                     </tr>
@@ -696,22 +645,7 @@ const ReferralDetailsModal = ({
                   {formatCurrency(referral.clientValue || 0)}
                 </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Status
-                </label>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    referral.status === "Paid"
-                      ? "bg-green-100 text-green-800"
-                      : referral.status === "Pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {referral.status}
-                </span>
-              </div>
+             
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Created Date

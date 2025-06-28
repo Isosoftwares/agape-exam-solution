@@ -73,7 +73,7 @@ function SignUp() {
       const text = `Welcome ${userName || ""}`;
       toast.success(text);
 
-      navigate(toClient, { replace: true, state: { from: "signup" } });
+      navigate(toClient, { replace: true, state: { from: "sign-up" } });
     },
     onError: (err) => {
       const text = err.response.data.messsage || "Something went wrong";

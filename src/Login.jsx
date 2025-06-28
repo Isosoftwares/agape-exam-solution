@@ -263,7 +263,7 @@ function Login() {
 
                   {/* Sign Up Link */}
                   <Link
-                    to="/signup"
+                    to="/sign-up"
                     state={{ dashboardPath: dashboardPath }}
                     className="w-full py-4 border-2 border-primary/20 hover:border-primary/50 text-primary hover:text-primary font-semibold rounded-xl transition-all duration-300 hover:scale-[1.02] hover:bg-primary/5 flex items-center justify-center"
                   >
