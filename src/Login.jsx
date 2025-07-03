@@ -37,7 +37,11 @@ function Login() {
     return axios.post("/auth/login", loginData);
   };
 
-  const { mutate: loginMutate, isPending: loginLoading, error } = useMutation({
+  const {
+    mutate: loginMutate,
+    isPending: loginLoading,
+    error,
+  } = useMutation({
     mutationFn: login,
 
     onSuccess: (response) => {
@@ -97,6 +101,7 @@ function Login() {
   });
 
   const onSubmitting = async (data) => {
+    data.site = "Agape Exam";
     loginMutate(data);
   };
 

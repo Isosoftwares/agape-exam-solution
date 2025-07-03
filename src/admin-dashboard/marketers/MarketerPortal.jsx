@@ -1,143 +1,495 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { 
-  Copy, 
-  ExternalLink, 
-  Users, 
-  DollarSign, 
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "react-toastify";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Copy,
+  ExternalLink,
+  Users,
+  DollarSign,
   TrendingUp,
   Calendar,
   Share2,
   Download,
   Eye,
-  Clock
-} from 'lucide-react';
-import axios from '../api/axios';
+  Clock,
+  LogIn,
+  Lock,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowUpRight,
+  ArrowDownLeft,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Loader,
+} from "lucide-react";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 
 const MarketerPortal = () => {
-  const [dateRange, setDateRange] = useState('30d');
+  const axios = useAxiosPrivate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [marketerData, setMarketerData] = useState(null);
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    referralCode: "",
+  });
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginErrors, setLoginErrors] = useState({});
+
+  const [dateRange, setDateRange] = useState("30d");
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // In a real app, get marketer ID from auth context
-  const marketerId = "YOUR_MARKETER_ID"; // Replace with actual marketer ID
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentStatus, setPaymentStatus] = useState(""); // Filter by status
 
-  // Fetch marketer analytics
-  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['marketer-analytics', marketerId, dateRange],
-    queryFn: async () => {
-      const response = await axios.get(`/analytics/marketer/${marketerId}?range=${dateRange}`);
-      return response.data;
+  // Authentication function
+  const authenticateMarketer = async (e = null) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
     }
+
+    // Validate form
+    const errors = {};
+    if (!loginForm.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(loginForm.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!loginForm.referralCode.trim()) {
+      errors.referralCode = "Referral code is required";
+    } else if (loginForm.referralCode.length !== 6) {
+      errors.referralCode = "Referral code must be exactly 6 characters";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setLoginErrors(errors);
+      return;
+    }
+
+    setLoginLoading(true);
+    setLoginErrors({});
+
+    try {
+      const response = await axios.post("/auth/marketers/authenticate", {
+        email: loginForm.email.trim(),
+        referralCode: loginForm.referralCode.trim().toUpperCase(),
+      });
+
+      if (response.data.success) {
+        setMarketerData(response.data.marketer);
+        setIsAuthenticated(true);
+        toast.success("Successfully logged in!");
+      } else {
+        toast.error(response.data.message || "Authentication failed");
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Authentication failed. Please check your credentials.";
+      toast.error(errorMessage);
+      setLoginErrors({ general: errorMessage });
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // Fetch payments data
+  const {
+    data: paymentsData,
+    isLoading: paymentsLoading,
+    error: paymentsError,
+    refetch: refetchPayments,
+  } = useQuery({
+    queryKey: [
+      "marketer-payments",
+      marketerData?._id,
+      paymentsPage,
+      paymentStatus,
+    ],
+    queryFn: async () => {
+      if (!marketerData?._id) return null;
+
+      const params = new URLSearchParams({
+        page: paymentsPage.toString(),
+        limit: "10",
+        marketerId: marketerData._id,
+      });
+
+      if (paymentStatus) {
+        params.append("status", paymentStatus);
+      }
+
+      const response = await axios.get(`/marketers/payments?${params}`);
+      return response.data;
+    },
+    enabled: !!marketerData?._id && isAuthenticated,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch marketer's referrals
-  const { data: referralsData, isLoading: referralsLoading } = useQuery({
-    queryKey: ['my-referrals', marketerId, currentPage],
-    queryFn: async () => {
-      const response = await axios.get(`/marketers/${marketerId}/referrals?page=${currentPage}&limit=10`);
-      return response.data;
-    }
-  });
-
-  const marketer = analyticsData?.data?.marketer;
-  const stats = analyticsData?.data?.stats;
-  const dailyPerformance = analyticsData?.data?.dailyPerformance || [];
-  const recentReferrals = analyticsData?.data?.recentReferrals || [];
-  const referrals = referralsData?.data?.referrals || [];
-  const pagination = referralsData?.data?.pagination || {};
-
-  const copyReferralLink = () => {
-    if (!marketer?.referralCode) return;
-    const link = `${window.location.origin}/signup?ref=${marketer.referralCode}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Referral link copied to clipboard!');
-  };
-
-  const copyReferralCode = () => {
-    if (!marketer?.referralCode) return;
-    navigator.clipboard.writeText(marketer.referralCode);
-    toast.success('Referral code copied to clipboard!');
-  };
-
-  const shareOnSocial = (platform) => {
-    if (!marketer?.referralCode) return;
-    
-    const link = `${window.location.origin}/signup?ref=${marketer.referralCode}`;
-    const text = "Join this amazing platform and get academic support!";
-    
-    let shareUrl = '';
-    switch (platform) {
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`;
-        break;
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
-        break;
-      case 'linkedin':
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`;
-        break;
-      case 'whatsapp':
-        shareUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + link)}`;
-        break;
-      default:
-        return;
-    }
-    
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount || 0);
-  };
-
-  const getStatusBadge = (status) => {
-    const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-    switch (status) {
-      case 'Paid':
-        return `${baseClasses} bg-green-100 text-green-800`;
-      case 'Pending':
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case 'Cancelled':
-        return `${baseClasses} bg-red-100 text-red-800`;
-      default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
+  const handleLoginInputChange = (field, value) => {
+    setLoginForm((prev) => ({ ...prev, [field]: value }));
+    // Clear errors when user starts typing
+    if (loginErrors[field]) {
+      setLoginErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
-  if (analyticsLoading) {
+  const logout = () => {
+    setIsAuthenticated(false);
+    setMarketerData(null);
+    setLoginForm({ email: "", referralCode: "" });
+    setCurrentPage(1);
+    setPaymentsPage(1);
+    setPaymentStatus("");
+    toast.info("Logged out successfully");
+  };
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          {/* Login Card */}
+          <div className="bg-white rounded-lg border border-gray-200 p-8">
+            <div className="text-center mb-8">
+              <div className="mx-auto h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <LogIn className="h-6 w-6 text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Marketer Portal
+              </h2>
+              <p className="text-gray-600">
+                Enter your credentials to access your dashboard
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {loginErrors.general && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <p className="text-red-600 text-sm">{loginErrors.general}</p>
+                </div>
+              )}
+
+              {/* Email Field */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    type="email"
+                    value={loginForm.email}
+                    onChange={(e) =>
+                      handleLoginInputChange("email", e.target.value)
+                    }
+                    className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      loginErrors.email ? "border-red-300" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your email"
+                    disabled={loginLoading}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && authenticateMarketer()
+                    }
+                  />
+                </div>
+                {loginErrors.email && (
+                  <p className="text-red-600 text-xs mt-1">
+                    {loginErrors.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Referral Code Field */}
+              <div>
+                <label
+                  htmlFor="referralCode"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Referral Code
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="referralCode"
+                    type="text"
+                    value={loginForm.referralCode}
+                    onChange={(e) =>
+                      handleLoginInputChange(
+                        "referralCode",
+                        e.target.value.toUpperCase()
+                      )
+                    }
+                    className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono tracking-wider ${
+                      loginErrors.referralCode
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="ABC123"
+                    maxLength={6}
+                    disabled={loginLoading}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && authenticateMarketer()
+                    }
+                  />
+                </div>
+                {loginErrors.referralCode && (
+                  <p className="text-red-600 text-xs mt-1">
+                    {loginErrors.referralCode}
+                  </p>
+                )}
+                <p className="text-gray-500 text-xs mt-1">
+                  Enter your 6-character referral code
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={authenticateMarketer}
+                disabled={loginLoading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                {loginLoading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Authenticating...
+                  </div>
+                ) : (
+                  "Access Dashboard"
+                )}
+              </button>
+            </div>
+
+            {/* Help Text */}
+            <div className="mt-6 text-center">
+              <p className="text-gray-500 text-sm">
+                Don't have access? Contact your administrator for your referral
+                code.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Dashboard content (existing functionality)
+  const marketer = marketerData;
+
+  const copyReferralLink = () => {
+    if (!marketer?.referralCode) return;
+    const link = `${window.location.origin}/signup?ref=${marketer.referralCode}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Referral link copied to clipboard!");
+  };
+
+  const copyReferralCode = () => {
+    if (!marketer?.referralCode) return;
+    navigator.clipboard.writeText(marketer.referralCode);
+    toast.success("Referral code copied to clipboard!");
+  };
+
+  const shareOnSocial = (platform) => {
+    if (!marketer?.referralCode) return;
+
+    const link = `${window.location.origin}/signup?ref=${marketer.referralCode}`;
+    const text = "Join this amazing platform and get academic support!";
+
+    let shareUrl = "";
+    switch (platform) {
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+          text
+        )}&url=${encodeURIComponent(link)}`;
+        break;
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+          link
+        )}`;
+        break;
+      case "linkedin":
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+          link
+        )}`;
+        break;
+      case "whatsapp":
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(
+          text + " " + link
+        )}`;
+        break;
+      default:
+        return;
+    }
+
+    window.open(shareUrl, "_blank", "width=600,height=400");
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount || 0);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "Completed":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "Pending":
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case "Failed":
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case "Cancelled":
+        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Completed":
+        return "bg-green-100 text-green-800";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Failed":
+        return "bg-red-100 text-red-800";
+      case "Cancelled":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Pagination component
+  const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
+    const getVisiblePages = () => {
+      const maxVisible = 5;
+      const half = Math.floor(maxVisible / 2);
+      let start = Math.max(1, currentPage - half);
+      let end = Math.min(totalPages, start + maxVisible - 1);
+
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+
+      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    };
+
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between mt-6">
+        <div className="text-sm text-gray-700">
+          Page {currentPage} of {totalPages}
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => onPageChange(1)}
+            disabled={currentPage === 1}
+            className="p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {getVisiblePages().map((page) => (
+            <button
+              key={page}
+              onClick={() => onPageChange(page)}
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                page === currentPage
+                  ? "bg-blue-600 text-white"
+                  : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onPageChange(totalPages)}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Welcome back, {marketer?.name}!
-              </h1>
-              <p className="text-gray-600 mt-1">Track your referral performance and earnings</p>
-              
-              {marketer?.status !== 'Active' && (
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Welcome back, {marketer?.name}!
+                </h1>
+                <button
+                  onClick={logout}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Logout
+                </button>
+              </div>
+              <p className="text-gray-600 mt-1">
+                Track your referral performance and earnings
+              </p>
+
+              {marketer?.status !== "Active" && (
                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-yellow-800 text-sm">
                     Your account status is: <strong>{marketer?.status}</strong>
-                    {marketer?.status === 'Suspended' && 
-                      '. Please contact support for assistance.'}
+                    {marketer?.status === "Suspended" &&
+                      ". Please contact support for assistance."}
                   </p>
                 </div>
               )}
@@ -145,8 +497,10 @@ const MarketerPortal = () => {
 
             {/* Referral Tools */}
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-3">Your Referral Tools</h3>
-              
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Your Referral Tools
+              </h3>
+
               <div className="space-y-3">
                 {/* Referral Code */}
                 <div>
@@ -205,25 +559,25 @@ const MarketerPortal = () => {
                   </label>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => shareOnSocial('twitter')}
+                      onClick={() => shareOnSocial("twitter")}
                       className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
                     >
                       Twitter
                     </button>
                     <button
-                      onClick={() => shareOnSocial('facebook')}
+                      onClick={() => shareOnSocial("facebook")}
                       className="px-3 py-1 bg-blue-700 text-white rounded text-sm hover:bg-blue-800"
                     >
                       Facebook
                     </button>
                     <button
-                      onClick={() => shareOnSocial('linkedin')}
+                      onClick={() => shareOnSocial("linkedin")}
                       className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                     >
                       LinkedIn
                     </button>
                     <button
-                      onClick={() => shareOnSocial('whatsapp')}
+                      onClick={() => shareOnSocial("whatsapp")}
                       className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
                     >
                       WhatsApp
@@ -237,308 +591,246 @@ const MarketerPortal = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Users className="text-blue-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Referrals</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalReferrals || 0}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Referrals
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {marketer?.totalReferrals || 0}
+                </p>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Earnings
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(stats?.totalEarnings)}
+                  {formatCurrency(marketer?.totalEarnings)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <Clock className="text-yellow-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Earnings</p>
+                <p className="text-sm font-medium text-gray-600">Balance</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(stats?.pendingEarnings)}
+                  {formatCurrency(marketer?.balance)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <TrendingUp className="text-purple-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg Commission</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Avg Commission
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(stats?.avgCommission)}
+                  {formatCurrency(
+                    marketer?.totalEarnings /
+                      Math.max(marketer?.totalReferrals, 1)
+                  )}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Performance Chart */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Performance Over Time</h3>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="1y">Last year</option>
-            </select>
-          </div>
-          
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dailyPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="_id" 
-                tickFormatter={(value) => new Date(value).toLocaleDateString()}
-              />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip 
-                labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                formatter={(value, name) => [
-                  name === 'earnings' ? formatCurrency(value) : value,
-                  name === 'earnings' ? 'Earnings' : 'Referrals'
-                ]}
-              />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="referrals" 
-                stroke="#3B82F6" 
-                strokeWidth={2}
-                name="referrals"
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="earnings" 
-                stroke="#10B981" 
-                strokeWidth={2}
-                name="earnings"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Payments History Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 sm:mb-0">
+              Payment History
+            </h2>
 
-        {/* Recent Activity and All Referrals */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+            {/* Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-4">
+             
+
+              <button
+                onClick={() => refetchPayments()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Refresh
+              </button>
             </div>
-            <div className="p-6">
-              {recentReferrals.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No recent referrals</p>
-              ) : (
-                <div className="space-y-4">
-                  {recentReferrals.map((referral, index) => (
-                    <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          New referral: {referral.client?.email}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(referral.createdAt).toLocaleDateString()}
-                        </p>
+          </div>
+
+          {/* Payment Table */}
+          {paymentsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-2 text-gray-600">Loading payments...</span>
+            </div>
+          ) : paymentsError ? (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <p className="text-red-600">
+                Error loading payments: {paymentsError.message}
+              </p>
+            </div>
+          ) : !paymentsData?.payments?.length ? (
+            <div className="text-center py-12">
+              <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No payments found
+              </h3>
+              <p className="text-gray-600">
+                {paymentStatus
+                  ? `No ${paymentStatus.toLowerCase()} payments found.`
+                  : "You haven't received any payments yet."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Prev Bal
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        New Bal
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Method
+                      </th>
+               
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Reference
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paymentsData.payments.map((payment) => (
+                      <tr key={payment._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(payment.paidAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium">
+                              {formatCurrency(payment.amount)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {formatCurrency(payment?.previousBalance)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {formatCurrency(payment?.newBalance)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {payment.paymentMethod}
+                        </td>
+                      
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {payment.reference || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                          {payment.description || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-4">
+                {paymentsData.payments.map((payment) => (
+                  <div key={payment._id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                        <span className="text-lg font-semibold text-green-600">
+                          {formatCurrency(payment.amount)}
+                        </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-green-600">
-                          {formatCurrency(referral.commissionAmount)}
-                        </p>
-                        <span className={getStatusBadge(referral.status)}>
-                          {referral.status}
+                      <div className="flex items-center">
+                        {getStatusIcon(payment.status)}
+                        <span
+                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                            payment.status
+                          )}`}
+                        >
+                          {payment.status}
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Commission Breakdown */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Commission Breakdown</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Commission Rate</span>
-                  <span className="font-medium">{marketer?.commissionRate}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Total Earned</span>
-                  <span className="font-medium">{formatCurrency(stats?.totalEarnings)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Paid Out</span>
-                  <span className="font-medium text-green-600">
-                    {formatCurrency(stats?.paidEarnings)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Pending</span>
-                  <span className="font-medium text-yellow-600">
-                    {formatCurrency(stats?.pendingEarnings)}
-                  </span>
-                </div>
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Client Value Generated</span>
-                    <span className="font-medium">{formatCurrency(stats?.totalClientValue)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* All Referrals Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">All Your Referrals</h3>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Commission
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client Value
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {referralsLoading ? (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
-                      <div className="flex justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : referrals.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                      No referrals found
-                    </td>
-                  </tr>
-                ) : (
-                  referrals.map((referral) => (
-                    <tr key={referral._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {referral.client?.userName || 'N/A'}
-                          </div>
-                          <div className="text-sm text-gray-500">{referral.client?.email}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {formatCurrency(referral.commissionAmount)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatCurrency(referral.clientValue || 0)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={getStatusBadge(referral.status)}>
-                          {referral.status}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Date:</span>
+                        <span className="text-gray-900">
+                          {formatDate(payment.paidAt)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(referral.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Method:</span>
+                        <span className="text-gray-900">
+                          {payment.paymentMethod}
+                        </span>
+                      </div>
+                      {payment.reference && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Reference:</span>
+                          <span className="text-gray-900">
+                            {payment.reference}
+                          </span>
+                        </div>
+                      )}
+                      {payment.description && (
+                        <div className="mt-2">
+                          <span className="text-gray-600">Description:</span>
+                          <p className="text-gray-900 mt-1">
+                            {payment.description}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-          {/* Pagination */}
-          {pagination.total > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === pagination.total}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    Showing page <span className="font-medium">{currentPage}</span> of{' '}
-                    <span className="font-medium">{pagination.total}</span>
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                    <button
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage === pagination.total}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Next
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            </div>
+              {/* Pagination */}
+              <PaginationControls
+                currentPage={paymentsPage}
+                totalPages={paymentsData?.pagination?.total || 1}
+                onPageChange={setPaymentsPage}
+              />
+            </>
           )}
         </div>
       </div>

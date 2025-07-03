@@ -90,6 +90,7 @@ import MarketerDashboard from "./admin-dashboard/marketers/MarketerDashboard";
 import SignUpWithReferral from "./SignUpWithReferral";
 import CommissionDashboard from "./admin-dashboard/marketers/CommissionDashboard";
 import ReferralAnalytics from "./admin-dashboard/marketers/ReferralAnalytics";
+import MarketerPortal from "./admin-dashboard/marketers/MarketerPortal";
 
 function App() {
   // Create a client
@@ -145,6 +146,7 @@ function App() {
             <Route path="/online-exam-help" element={<OnlineExamHelp />} />
             <Route path="/essay-help" element={<EssayHelp />} />
             <Route path="/my-test" element={<DoMyTest />} />
+            <Route path="/marketer-portal" element={<MarketerPortal />} />
             <Route
               path="exam-payment/success"
               element={<DoMyTestSuccessPayment />}

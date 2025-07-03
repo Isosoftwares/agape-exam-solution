@@ -59,7 +59,7 @@ function AdminOverview() {
     refetchPaymentsStats();
   }, [value]);
 
-  function getCurrentMonthName() {
+  function getCurrentMonthName(date) {
     const months = [
       "January",
       "February",
@@ -74,9 +74,10 @@ function AdminOverview() {
       "November",
       "December",
     ];
-    const currentMonthIndex = new Date().getMonth(); // getMonth() returns 0-11
+    const currentMonthIndex = new Date(date).getMonth(); // getMonth() returns 0-11
     return months[currentMonthIndex];
   }
+
 
   return (
     <div>
@@ -199,7 +200,7 @@ function AdminOverview() {
               >
                 <div className="bg-light p-4 rounded-lg shadow">
                   <h3 className="text-lg font-semibold">
-                    {getCurrentMonthName()} Subscriptions
+                    {getCurrentMonthName(value)}  Subscriptions
                   </h3>
                   <p>
                     Total:{" "}

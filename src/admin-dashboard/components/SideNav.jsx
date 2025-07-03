@@ -103,11 +103,11 @@ function SideNav({ mobileMenu, handleMenu }) {
           path: "/dashboard/commission-dashboard",
           icon: <MdPriceChange size={18} />,
         },
-         {
-          name: "Referral Analytics",
-          path: "/dashboard/referal-analytics",
-          icon: <MdPriceChange size={18} />,
-        },
+        // {
+        //   name: "Referral Analytics",
+        //   path: "/dashboard/referal-analytics",
+        //   icon: <MdPriceChange size={18} />,
+        // },
       ],
     },
     {
@@ -132,10 +132,20 @@ function SideNav({ mobileMenu, handleMenu }) {
       <div
         className={`bg-[#e7e5f0] relative hidden lg:inline-block  text-dark shadow-md  z-50   w-80  overflow-y-auto   `}
       >
-        <Link to={"/"} className="absolute ">
-          <img src={Logo} className=" w-full bg-primary " alt="Logo" />
+        <Link to={"/"}>
+          <div className="bg-primary w-full px-2 py-4">
+            <p>
+              <span className="text-2xl font-bold  text-secondary  ">
+                Agape{" "}
+              </span>
+              <span className="text-2xl font-bold  text-light  ">
+                Exam Solutions
+              </span>
+            </p>
+            {/* <img src={Logo} className=" w-full h-[100px]  bg-primary px-4 " alt="Logo" /> */}
+          </div>
         </Link>
-        <div className="px-4 h-screen pt-[90px] overflow-y-auto no-scrollbar pb-5">
+        <div className="px-4 h-screen pt-2 overflow-y-auto no-scrollbar pb-5">
           <ul className="flex flex-col  gap-3  font-semibold text-opacity-100  ">
             {navItems?.map((item, index) => {
               return (
